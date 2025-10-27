@@ -1,5 +1,4 @@
 # database-project
 
-Jebać pso
-
-meow~
+Project under construction...
+Please wait...
