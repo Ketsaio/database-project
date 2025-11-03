@@ -10,10 +10,9 @@ fake = Faker("pl_PL")
 DB_NAME = getenv("DB_NAME")
 SQL_USER = getenv("SQL_USER")
 SQL_PASSWORD = getenv("SQL_PASSWORD")
+DB_HOST = getenv("DB_HOST")
 
-HOST = "sxterm"
-
-with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host={HOST}") as conn:
+with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host={DB_HOST}") as conn:
     with conn.cursor() as cur:
         client_ids = []
         for _ in range(5):
