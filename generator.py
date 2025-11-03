@@ -14,6 +14,13 @@ DB_HOST = getenv("DB_HOST")
 
 with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host={DB_HOST}") as conn:
     with conn.cursor() as cur:
+
+        cur.execute("TRUNCATE TABLE szczegolyzam, zamowienia, produkt, producent, klient, kategoria RESTART IDENTITY CASCADE;")
+
+        with open("testowe_dane.sql", "r", encoding="UTF-8") as file:
+            sql = file.read()
+            cur.execute(sql)
+
         client_ids = []
         for _ in range(5):
             client_name = fake.first_name()
