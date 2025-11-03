@@ -11,7 +11,9 @@ DB_NAME = getenv("DB_NAME")
 SQL_USER = getenv("SQL_USER")
 SQL_PASSWORD = getenv("SQL_PASSWORD")
 
-with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host='sxterm'") as conn:
+HOST = "sxterm"
+
+with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host={HOST}") as conn:
     with conn.cursor() as cur:
         client_ids = []
         for _ in range(5):
@@ -38,9 +40,23 @@ with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host=
             cur.execute("INSERT INTO zamowienia (id_klienta, data, status, kwota) VALUES (%s, %s, %s, %s) RETURNING id_zam", (client_id, date, status, cost))
             orders_ids.append(cur.fetchone()[0])
 
-        for _ in range(5):
+        products_list = []
+
+        products = cur.execute("SELECT * FROM produkt;")
+
+        for i in products:
+            products_list.append(i[0])
+
+        used = set()
+        counter = 0
+        for _ in range(6):
             order_id = choice(orders_ids)
-            id_prod = 1
+            if counter < 5:
+                while order_id in used:
+                    order_id = choice(orders_ids)
+            counter += 1
+            used.add(order_id)
+            id_prod = choice(products_list)
             count = randint(1,10)
             cur.execute("SELECT cena FROM produkt WHERE id_prod = 1;")
             this_cost = cur.fetchone()[0]
