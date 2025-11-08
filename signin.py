@@ -47,14 +47,14 @@ class Account:
 			return False
 
 		user_id, username, pwdHash, is_admin = row
-		if not bcrypt.checkpw(pwd.encode("utf-8"), pwdHash.encode("utf-8") if isinstance(pwdHash, str) else pwdHash):
+		if not bcrypt.checkpw(pwd.encode("utf-8"), pwdHash):
 			print("wrong password")
 			return False
 		
 		self.account_id = user_id
 		self.username = username
 		self.admStatus = is_admin
-		
+
 		return True
 		
 	def getStatus(self) -> str:
