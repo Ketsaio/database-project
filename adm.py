@@ -247,7 +247,10 @@ def ordersMenu():
 		print("invalid option\n\n")
 
 
-def mainMenu():
+def adminPanel():
+	conn = getDatabaseConnection()
+	cur = conn.cursor()
+
 	while True:
 		opt = int(input("1. add new / 2. modify product / 3. check availability / 4. orders / 5. exit: "))
 		if opt == 1:
@@ -268,4 +271,4 @@ def mainMenu():
 	conn.close()
 
 if __name__ == "__main__":
-	mainMenu()
+	adminPanel()
