@@ -33,21 +33,23 @@ class Client:
                         try:
                             self.print_from_db(self.QUERY, True)
 
-                            print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Add to cart, 4 - Exit]")
+                            print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Add to cart, 4 - Order history, 5 - Exit]")
                             x = int(input("> "))
-                            if x < 1 or x > 4:
-                                print("Choose a number between 1 and 4!")
+                            if x < 1 or x > 5:
+                                print("Choose a number between 1 and 5!")
                                 continue
 
                             if x == 1:
                                 self.filters()
-                            if x == 2:
+                            elif x == 2:
                                 self.QUERY = self.default_query()
                                 self.add_to_query = []
                                 self.filters_check = {1:None, 2:None, 3:None, 4:None, 5:None}
-                            if x == 3:
+                            elif x == 3:
                                 self.cart_func()
-                            if x == 4:
+                            elif x == 4:
+                                self.history()
+                            elif x == 5:
                                 return
 
                         except (ValueError, TypeError) as e:
@@ -251,16 +253,33 @@ class Client:
                 self.cur.execute("UPDATE produkt SET stan_wirtualny = stan_wirtualny - %s WHERE id_prod = %s", (quantity, item_id))
             
                     
-                self.cur.execute("UPDATE zamowienia SET kwota = %s WHERE id_zam = %s", (total_cost, id_zam))
-                self.cart.clear()
+            self.cur.execute("UPDATE zamowienia SET kwota = %s WHERE id_zam = %s", (total_cost, id_zam))
+            self.cart.clear()
 
-                self.cur.connection.commit()
-                print("✓ Order completed successfully!")
-                sleep(2)
+            self.cur.connection.commit()
+            print("✓ Order completed successfully!")
+            sleep(2)
 
         except Exception as e:
             self.cur.connection.rollback()
             print(f"❌ Error processing order!\n{e}")
+
+    def history(self):
+        self.cur.execute("SELECT zamowienia.id_zam, zamowienia.data, zamowienia.status, zamowienia.kwota, szczegolyzam.id_prod, szczegolyzam.ilosc, produkt.cena, produkt.nazwa FROM zamowienia LEFT JOIN szczegolyzam ON zamowienia.id_zam = szczegolyzam.id_zam LEFT JOIN produkt ON szczegolyzam.id_prod = produkt.id_prod WHERE zamowienia.id_klienta = %s ORDER BY zamowienia.id_zam", (self.client_id,))
+        rows = self.cur.fetchall()
+
+        current_order = None
+        for rekord in rows:
+            id_zam, date, status, order_cost, id_prod, count, cost, name = rekord
+
+            if id_zam != current_order:
+                current_order = id_zam
+                print("=" * 65)
+                print(f"Zamowienie #{id_zam} -- {date} -- {status} -- {order_cost}")
+                print("=" * 65)
+
+            if id_prod:
+                print(f"  • {name:<40} x{count:<3} {cost:.2f} zł")
 
 if __name__ == "__main__":
     klient = Client()
