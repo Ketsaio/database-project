@@ -265,21 +265,38 @@ class Client:
             print(f"❌ Error processing order!\n{e}")
 
     def history(self):
-        self.cur.execute("SELECT zamowienia.id_zam, zamowienia.data, zamowienia.status, zamowienia.kwota, szczegolyzam.id_prod, szczegolyzam.ilosc, produkt.cena, produkt.nazwa FROM zamowienia LEFT JOIN szczegolyzam ON zamowienia.id_zam = szczegolyzam.id_zam LEFT JOIN produkt ON szczegolyzam.id_prod = produkt.id_prod WHERE zamowienia.id_klienta = %s ORDER BY zamowienia.id_zam", (self.client_id,))
-        rows = self.cur.fetchall()
+        try:
+            self.cur.execute("SELECT zamowienia.id_zam, zamowienia.data, zamowienia.status, zamowienia.kwota, szczegolyzam.id_prod, szczegolyzam.ilosc, produkt.cena, produkt.nazwa FROM zamowienia LEFT JOIN szczegolyzam ON zamowienia.id_zam = szczegolyzam.id_zam LEFT JOIN produkt ON szczegolyzam.id_prod = produkt.id_prod WHERE zamowienia.id_klienta = %s ORDER BY zamowienia.id_zam DESC, szczegolyzam.id", (self.client_id,))
+            rows = self.cur.fetchall()
 
-        current_order = None
-        for rekord in rows:
-            id_zam, date, status, order_cost, id_prod, count, cost, name = rekord
+            if not rows:
+                print("\n📦 No order history found.")
+                return
+            
+            print("\n" + "="*70)
+            print("YOUR ORDER HISTORY".center(70))
+            print("="*70)
 
-            if id_zam != current_order:
-                current_order = id_zam
-                print("=" * 65)
-                print(f"Zamowienie #{id_zam} -- {date} -- {status} -- {order_cost}")
-                print("=" * 65)
+            current_order = None
+            for rekord in rows:
+                id_zam, date, status, order_cost, id_prod, count, cost, name = rekord
 
-            if id_prod:
-                print(f"  • {name:<40} x{count:<3} {cost:.2f} zł")
+                if id_zam != current_order:
+                    if current_order is not None:
+                        print()
+
+                    current_order = id_zam
+                    print("=" * 70)
+                    print(f"Zamowienie #{id_zam} -- {date} -- {status} -- {order_cost}")
+                    print("=" * 70)
+
+                if id_prod:
+                    print(f"  • {name:<40} x{count:<3} {cost:.2f} zł")
+
+            print("\n" + "="*70 + "\n")
+
+        except Exception as e:
+            print(f"❌ Error loading order history: {e}")
 
 if __name__ == "__main__":
     klient = Client()
