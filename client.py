@@ -1,7 +1,7 @@
 import psycopg as ps
 from dotenv import load_dotenv
 from os import getenv
-
+from datetime import date
 
 load_dotenv()   # loads enviromental variables
 
@@ -18,6 +18,7 @@ class Client:
         self.cur = None
         self.filters_check = {1:None, 2:None, 3:None, 4:None, 5:None}
         #self.client_id = None -> waiting for login page
+        self.client_id = 5
 
     def main_loop(self):
         try:
@@ -139,11 +140,12 @@ class Client:
             print("Please, insert a number!")
     
     def cart_func(self):
-        print("What do u want to do? [1 - see, 2 - add, 3 - remove]")
+        print("What do u want to do? [1 - see, 2 - add, 3 - remove, 4 - buy items in cart]")
         try:
+            print("tu dziala")
             x = int(input("> "))
-
-            if x < 1 or x > 3:
+            print("tu tez")
+            if x < 1 or x > 4:
                 print("Choose the correct number!")
                 return
 
@@ -153,9 +155,11 @@ class Client:
                 self.add_to_cart()
             elif x == 3:
                 self.remove_from_cart()
+            elif x == 4:
+                self.buy_out()
 
         except (ValueError, TypeError):
-            print("Please, insert a number!")
+            print(f"Please, insert a number!")
 
     def show_cart(self):
         if not self.cart:
@@ -197,6 +201,7 @@ class Client:
 
     def remove_from_cart(self):
         try:
+            self.show_cart()
             item_id = int(input("Enter id to remove: "))
             if item_id in self.cart:
                 del self.cart[item_id]
@@ -205,6 +210,38 @@ class Client:
                 print("Item not found in cart.")
         except (ValueError, TypeError):
             print("Please, insert a number!")
+
+    def buy_out(self):
+            
+            blik = int(input("Please enter blik code, your total is "))
+
+
+            self.cur.execute("INSERT INTO zamowienia (id_klienta, data, status, kwota) VALUES (%s, %s, %s, %s) RETURNING id_zam", (self.client_id, date.today(), "OCZEKUJĄCE", 0.0))
+            id_zam = self.cur.fetchone()[0]
+            total_cost = 0
+            for v, k in self.cart.items():
+                self.cur.execute("SELECT nazwa, cena, stan_wirtualny FROM produkt WHERE id_prod = %s", (v,))
+                holder = self.cur.fetchone()
+                name = holder[0]
+                cost = holder[1]
+                is_ava = holder[2]
+
+                if is_ava <= 0 or is_ava is None:
+                    print(f"{name} is not available, skipping this product!")
+                    self.cart.pop(k)
+                    continue
+
+                if k > is_ava:
+                    print(f"We dont have, {k} {name}, skipping this product!")
+                    self.cart.pop(k)
+                    continue
+
+                total_cost += (cost * k)
+                self.cur.execute("INSERT INTO szczegolyzam (id_zam, id_prod, ilosc, cena) VALUES (%s, %s, %s, %s)", (id_zam, v, k, k*cost))
+                self.cur.execute("UPDATE produkt SET stan_wirtualny = stan_wirtualny - %s WHERE id_prod = %s", (k,v))
+            
+            self.cur.execute("UPDATE zamowienia SET kwota = %s WHERE id_zam = %s", (total_cost, id_zam))
+            self.cart.clear()
 
 if __name__ == "__main__":
     klient = Client()
