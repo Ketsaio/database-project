@@ -165,7 +165,7 @@ def getAllOrders():
 		print(row)
 
 def getUnrealizedOrders():
-	cur.execute("SELECT * FROM zamowienia WHERE status LIKE 'niezrealizowane' ORDER BY id_zam;")
+	cur.execute("SELECT * FROM zamowienia WHERE status LIKE 'OCZEKUJĄCE' ORDER BY id_zam;")
 		
 	for row in cur.fetchall():
 		print(row)

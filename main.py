@@ -8,7 +8,7 @@ def main():
 		opt = int(input("1: sign in // 2: sign up: "))	# todo add type exception handling
 		if opt == 1:
 			if acc.signIn():
-				print(f"welcome {acc.username}")
+				print(f"welcome {acc.firstName}")
 				if acc.getStatus() == "admin":
 					adminPanel()
 				else:
