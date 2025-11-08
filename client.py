@@ -1,7 +1,8 @@
 import psycopg as ps
 from dotenv import load_dotenv
 from os import getenv
-
+from datetime import date
+from time import sleep
 
 load_dotenv()   # loads enviromental variables
 
@@ -18,6 +19,7 @@ class Client:
         self.cur = None
         self.filters_check = {1:None, 2:None, 3:None, 4:None, 5:None}
         #self.client_id = None -> waiting for login page
+        self.client_id = 5 # -> placeholder for testing
 
     def main_loop(self):
         try:
@@ -31,26 +33,27 @@ class Client:
                         try:
                             self.print_from_db(self.QUERY, True)
 
-                            print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Add to cart, 4 - Exit]")
-
+                            print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Add to cart, 4 - Order history, 5 - Exit]")
                             x = int(input("> "))
-                            if x < 1 or x > 4:
-                                print("Choose a number between 1 and 4!")
+                            if x < 1 or x > 5:
+                                print("Choose a number between 1 and 5!")
                                 continue
 
                             if x == 1:
                                 self.filters()
-                            if x == 2:
+                            elif x == 2:
                                 self.QUERY = self.default_query()
                                 self.add_to_query = []
                                 self.filters_check = {1:None, 2:None, 3:None, 4:None, 5:None}
-                            if x == 3:
+                            elif x == 3:
                                 self.cart_func()
-                            if x == 4:
+                            elif x == 4:
+                                self.history()
+                            elif x == 5:
                                 return
 
-                        except (ValueError, TypeError):
-                            print("Please, insert a number!")
+                        except (ValueError, TypeError) as e:
+                            print(f"Please, insert a number!\n{e}")
         except Exception as e:
             print(f"Something went wrong on database - script line\n{e}")
 
@@ -128,22 +131,21 @@ class Client:
                 QUERY_HOLDER = f" produkt.cena BETWEEN %s AND %s"
                 self.add_to_query.append(x)
                 self.add_to_query.append(y)
-                self.filters_check[4] = len(self.add_to_query) - 1
+                self.filters_check[4] = len(self.add_to_query) - 2
                 self.filters_check[5] = len(self.add_to_query) - 1
 
             self.QUERY += (" AND" + QUERY_HOLDER)
 
             print("\n")
             
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
     
     def cart_func(self):
-        print("What do u want to do? [1 - see, 2 - add, 3 - remove]")
+        print("What do u want to do? [1 - see, 2 - add, 3 - remove, 4 - buy items in cart]")
         try:
             x = int(input("> "))
-
-            if x < 1 or x > 3:
+            if x < 1 or x > 4:
                 print("Choose the correct number!")
                 return
 
@@ -153,9 +155,11 @@ class Client:
                 self.add_to_cart()
             elif x == 3:
                 self.remove_from_cart()
+            elif x == 4:
+                self.buy_out()
 
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
 
     def show_cart(self):
         if not self.cart:
@@ -165,14 +169,14 @@ class Client:
         for k, v in self.cart.items():
             self.cur.execute("SELECT nazwa, jednostka FROM produkt WHERE id_prod = %s;", (k,))
             name, place = self.cur.fetchone()
-            print(f"{k:^3} | {name:^56} | {v:^12} {place}")
+            print(f"{k:<3} | {name:^25} | {v[0]} {place} | {v[0] * v[1]}zł")
 
     def add_to_cart(self):
         print("Choose item id and quantity, for example:\n1 3 (id: 1, quantity: 3)")
         try:
             while(True):
                 item_id, item_quan = map(int, input("> ").split())
-                self.cur.execute("SELECT stan_wirtualny FROM produkt WHERE id_prod = %s AND stan_wirtualny > 0",(item_id,))
+                self.cur.execute("SELECT stan_wirtualny, cena FROM produkt WHERE id_prod = %s AND stan_wirtualny > 0",(item_id,))
             
                 result = self.cur.fetchone()
             
@@ -187,24 +191,112 @@ class Client:
                     continue
 
                 if item_id not in self.cart:
-                    self.cart[item_id] = item_quan
+                    self.cart[item_id] = [item_quan, result[1]]
                 else:
-                    self.cart[item_id] += item_quan
+                    self.cart[item_id][0] += item_quan
                 return
 
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
 
     def remove_from_cart(self):
         try:
+            self.show_cart()
             item_id = int(input("Enter id to remove: "))
             if item_id in self.cart:
                 del self.cart[item_id]
                 print("Removed!")
             else:
                 print("Item not found in cart.")
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
+
+    def buy_out(self):
+            
+        try:
+            total_cost = 0.0
+            for quantity, price in self.cart.values():
+                total_cost += quantity * price
+            
+            blik = input(f"Please enter BLIK code, your total is {total_cost:.2f} zł\n> ")
+            if len(blik) != 6 or not blik.isdigit():
+                print("Invalid BLIK code (must be 6 digits)")
+                return
+            
+            print("Processing payment...")
+            sleep(3)
+            
+            self.cur.execute("INSERT INTO zamowienia (id_klienta, data, status, kwota) VALUES (%s, %s, %s, %s) RETURNING id_zam",(self.client_id, date.today(), "OCZEKUJĄCE", total_cost))
+            id_zam = self.cur.fetchone()[0]
+            
+            for item_id, (quantity, price) in self.cart.items():
+                self.cur.execute("SELECT nazwa, stan_wirtualny FROM produkt WHERE id_prod = %s", (item_id,))
+                result = self.cur.fetchone()
+                
+                if not result:
+                    print(f"Product ID {item_id} not found, skipping!")
+                    continue
+                
+                name, stock = result
+                
+                if stock is None or stock <= 0:
+                    print(f"{name} is not available, skipping this product!")
+                    continue
+                
+                if quantity > stock:
+                    print(f"We don't have {quantity} of {name}, skipping this product!")
+                    continue
+                
+                item_total = quantity * price
+                self.cur.execute("INSERT INTO szczegolyzam (id_zam, id_prod, ilosc, cena) VALUES (%s, %s, %s, %s)", (id_zam, item_id, quantity, item_total))
+                
+                self.cur.execute("UPDATE produkt SET stan_wirtualny = stan_wirtualny - %s WHERE id_prod = %s", (quantity, item_id))
+            
+                    
+            self.cur.execute("UPDATE zamowienia SET kwota = %s WHERE id_zam = %s", (total_cost, id_zam))
+            self.cart.clear()
+
+            self.cur.connection.commit()
+            print("✓ Order completed successfully!")
+            sleep(2)
+
+        except Exception as e:
+            self.cur.connection.rollback()
+            print(f"❌ Error processing order!\n{e}")
+
+    def history(self):
+        try:
+            self.cur.execute("SELECT zamowienia.id_zam, zamowienia.data, zamowienia.status, zamowienia.kwota, szczegolyzam.id_prod, szczegolyzam.ilosc, produkt.cena, produkt.nazwa FROM zamowienia LEFT JOIN szczegolyzam ON zamowienia.id_zam = szczegolyzam.id_zam LEFT JOIN produkt ON szczegolyzam.id_prod = produkt.id_prod WHERE zamowienia.id_klienta = %s ORDER BY zamowienia.id_zam DESC, szczegolyzam.id", (self.client_id,))
+            rows = self.cur.fetchall()
+
+            if not rows:
+                print("\n📦 No order history found.")
+                return
+            
+            print("\n" + "="*70)
+            print("YOUR ORDER HISTORY".center(70))
+            print("="*70)
+
+            current_order = None
+            for rekord in rows:
+                id_zam, date, status, order_cost, id_prod, count, cost, name = rekord
+
+                if id_zam != current_order:
+                    if current_order is not None:
+                        print()
+
+                    current_order = id_zam
+                    print("=" * 70)
+                    print(f"Zamowienie #{id_zam} -- {date} -- {status} -- {order_cost}")
+                    print("=" * 70)
+
+                if id_prod:
+                    print(f"  • {name:<40} x{count:<3} {cost:.2f} zł")
+
+            print("\n" + "="*70 + "\n")
+
+        except Exception as e:
+            print(f"❌ Error loading order history: {e}")
 
 if __name__ == "__main__":
     klient = Client()
