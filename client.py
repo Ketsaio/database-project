@@ -50,8 +50,8 @@ class Client:
                             if x == 4:
                                 return
 
-                        except (ValueError, TypeError):
-                            print("Please, insert a number!")
+                        except (ValueError, TypeError) as e:
+                            print(f"Please, insert a number!\n{e}")
         except Exception as e:
             print(f"Something went wrong on database - script line\n{e}")
 
@@ -136,8 +136,8 @@ class Client:
 
             print("\n")
             
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
     
     def cart_func(self):
         print("What do u want to do? [1 - see, 2 - add, 3 - remove, 4 - buy items in cart]")
@@ -158,8 +158,8 @@ class Client:
             elif x == 4:
                 self.buy_out()
 
-        except (ValueError, TypeError):
-            print(f"Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
 
     def show_cart(self):
         if not self.cart:
@@ -196,8 +196,8 @@ class Client:
                     self.cart[item_id] += item_quan
                 return
 
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
 
     def remove_from_cart(self):
         try:
@@ -208,12 +208,12 @@ class Client:
                 print("Removed!")
             else:
                 print("Item not found in cart.")
-        except (ValueError, TypeError):
-            print("Please, insert a number!")
+        except (ValueError, TypeError) as e:
+            print(f"Please, insert a number!\n{e}")
 
     def buy_out(self):
             
-            blik = int(input("Please enter blik code, your total is "))
+            #blik = int(input("Please enter blik code, your total is "))
 
 
             self.cur.execute("INSERT INTO zamowienia (id_klienta, data, status, kwota) VALUES (%s, %s, %s, %s) RETURNING id_zam", (self.client_id, date.today(), "OCZEKUJĄCE", 0.0))
