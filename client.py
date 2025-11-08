@@ -2,6 +2,7 @@ import psycopg as ps
 from dotenv import load_dotenv
 from os import getenv
 from datetime import date
+from time import sleep
 
 load_dotenv()   # loads enviromental variables
 
@@ -18,7 +19,7 @@ class Client:
         self.cur = None
         self.filters_check = {1:None, 2:None, 3:None, 4:None, 5:None}
         #self.client_id = None -> waiting for login page
-        self.client_id = 5
+        self.client_id = 5 # -> placeholder for testing
 
     def main_loop(self):
         try:
@@ -33,7 +34,6 @@ class Client:
                             self.print_from_db(self.QUERY, True)
 
                             print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Add to cart, 4 - Exit]")
-
                             x = int(input("> "))
                             if x < 1 or x > 4:
                                 print("Choose a number between 1 and 4!")
@@ -129,7 +129,7 @@ class Client:
                 QUERY_HOLDER = f" produkt.cena BETWEEN %s AND %s"
                 self.add_to_query.append(x)
                 self.add_to_query.append(y)
-                self.filters_check[4] = len(self.add_to_query) - 1
+                self.filters_check[4] = len(self.add_to_query) - 2
                 self.filters_check[5] = len(self.add_to_query) - 1
 
             self.QUERY += (" AND" + QUERY_HOLDER)
@@ -142,9 +142,7 @@ class Client:
     def cart_func(self):
         print("What do u want to do? [1 - see, 2 - add, 3 - remove, 4 - buy items in cart]")
         try:
-            print("tu dziala")
             x = int(input("> "))
-            print("tu tez")
             if x < 1 or x > 4:
                 print("Choose the correct number!")
                 return
@@ -169,14 +167,14 @@ class Client:
         for k, v in self.cart.items():
             self.cur.execute("SELECT nazwa, jednostka FROM produkt WHERE id_prod = %s;", (k,))
             name, place = self.cur.fetchone()
-            print(f"{k:^3} | {name:^56} | {v:^12} {place}")
+            print(f"{k:<3} | {name:^25} | {v[0]} {place} | {v[0] * v[1]}zł")
 
     def add_to_cart(self):
         print("Choose item id and quantity, for example:\n1 3 (id: 1, quantity: 3)")
         try:
             while(True):
                 item_id, item_quan = map(int, input("> ").split())
-                self.cur.execute("SELECT stan_wirtualny FROM produkt WHERE id_prod = %s AND stan_wirtualny > 0",(item_id,))
+                self.cur.execute("SELECT stan_wirtualny, cena FROM produkt WHERE id_prod = %s AND stan_wirtualny > 0",(item_id,))
             
                 result = self.cur.fetchone()
             
@@ -191,9 +189,9 @@ class Client:
                     continue
 
                 if item_id not in self.cart:
-                    self.cart[item_id] = item_quan
+                    self.cart[item_id] = [item_quan, result[1]]
                 else:
-                    self.cart[item_id] += item_quan
+                    self.cart[item_id][0] += item_quan
                 return
 
         except (ValueError, TypeError) as e:
@@ -213,35 +211,56 @@ class Client:
 
     def buy_out(self):
             
-            #blik = int(input("Please enter blik code, your total is "))
-
-
-            self.cur.execute("INSERT INTO zamowienia (id_klienta, data, status, kwota) VALUES (%s, %s, %s, %s) RETURNING id_zam", (self.client_id, date.today(), "OCZEKUJĄCE", 0.0))
-            id_zam = self.cur.fetchone()[0]
-            total_cost = 0
-            for v, k in self.cart.items():
-                self.cur.execute("SELECT nazwa, cena, stan_wirtualny FROM produkt WHERE id_prod = %s", (v,))
-                holder = self.cur.fetchone()
-                name = holder[0]
-                cost = holder[1]
-                is_ava = holder[2]
-
-                if is_ava <= 0 or is_ava is None:
-                    print(f"{name} is not available, skipping this product!")
-                    self.cart.pop(k)
-                    continue
-
-                if k > is_ava:
-                    print(f"We dont have, {k} {name}, skipping this product!")
-                    self.cart.pop(k)
-                    continue
-
-                total_cost += (cost * k)
-                self.cur.execute("INSERT INTO szczegolyzam (id_zam, id_prod, ilosc, cena) VALUES (%s, %s, %s, %s)", (id_zam, v, k, k*cost))
-                self.cur.execute("UPDATE produkt SET stan_wirtualny = stan_wirtualny - %s WHERE id_prod = %s", (k,v))
+        try:
+            total_cost = 0.0
+            for quantity, price in self.cart.values():
+                total_cost += quantity * price
             
-            self.cur.execute("UPDATE zamowienia SET kwota = %s WHERE id_zam = %s", (total_cost, id_zam))
-            self.cart.clear()
+            blik = input(f"Please enter BLIK code, your total is {total_cost:.2f} zł\n> ")
+            if len(blik) != 6 or not blik.isdigit():
+                print("Invalid BLIK code (must be 6 digits)")
+                return
+            
+            print("Processing payment...")
+            sleep(3)
+            
+            self.cur.execute("INSERT INTO zamowienia (id_klienta, data, status, kwota) VALUES (%s, %s, %s, %s) RETURNING id_zam",(self.client_id, date.today(), "OCZEKUJĄCE", total_cost))
+            id_zam = self.cur.fetchone()[0]
+            
+            for item_id, (quantity, price) in self.cart.items():
+                self.cur.execute("SELECT nazwa, stan_wirtualny FROM produkt WHERE id_prod = %s", (item_id,))
+                result = self.cur.fetchone()
+                
+                if not result:
+                    print(f"Product ID {item_id} not found, skipping!")
+                    continue
+                
+                name, stock = result
+                
+                if stock is None or stock <= 0:
+                    print(f"{name} is not available, skipping this product!")
+                    continue
+                
+                if quantity > stock:
+                    print(f"We don't have {quantity} of {name}, skipping this product!")
+                    continue
+                
+                item_total = quantity * price
+                self.cur.execute("INSERT INTO szczegolyzam (id_zam, id_prod, ilosc, cena) VALUES (%s, %s, %s, %s)", (id_zam, item_id, quantity, item_total))
+                
+                self.cur.execute("UPDATE produkt SET stan_wirtualny = stan_wirtualny - %s WHERE id_prod = %s", (quantity, item_id))
+            
+                    
+                self.cur.execute("UPDATE zamowienia SET kwota = %s WHERE id_zam = %s", (total_cost, id_zam))
+                self.cart.clear()
+
+                self.cur.connection.commit()
+                print("✓ Order completed successfully!")
+                sleep(2)
+
+        except Exception as e:
+            self.cur.connection.rollback()
+            print(f"❌ Error processing order!\n{e}")
 
 if __name__ == "__main__":
     klient = Client()
