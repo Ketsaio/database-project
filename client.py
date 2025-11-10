@@ -6,8 +6,13 @@ from time import sleep
 
 load_dotenv()   # loads enviromental variables
 
+def start_up(client_id : int):
+    client = Client(client_id)
+    client.main_loop()
+    return
+
 class Client:
-    def __init__(self):
+    def __init__(self, client_id : int):
         self.DB_NAME = getenv("DB_NAME")
         self.SQL_USER = getenv("SQL_USER")
         self.SQL_PASSWORD = getenv("SQL_PASSWORD")
@@ -18,8 +23,7 @@ class Client:
         self.QUERY = self.default_query()
         self.cur = None
         self.filters_check = {1:None, 2:None, 3:None, 4:None, 5:None}
-        #self.client_id = None -> waiting for login page
-        self.client_id = 5 # -> placeholder for testing
+        self.client_id = client_id
 
     def main_loop(self):
         try:
@@ -33,7 +37,7 @@ class Client:
                         try:
                             self.print_from_db(self.QUERY, True)
 
-                            print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Add to cart, 4 - Order history, 5 - Exit]")
+                            print("What would u like to do? [1 - Filter, 2 - Clear filters, 3 - Cart, 4 - Order history, 5 - Exit]")
                             x = int(input("> "))
                             if x < 1 or x > 5:
                                 print("Choose a number between 1 and 5!")
@@ -169,7 +173,7 @@ class Client:
         for k, v in self.cart.items():
             self.cur.execute("SELECT nazwa, jednostka FROM produkt WHERE id_prod = %s;", (k,))
             name, place = self.cur.fetchone()
-            print(f"{k:<3} | {name:^25} | {v[0]} {place} | {v[0] * v[1]}zł")
+            print(f"{k:<3} | {name:^25} | {v[0]} {place} | {v[0] * v[1]} zł")
 
     def add_to_cart(self):
         print("Choose item id and quantity, for example:\n1 3 (id: 1, quantity: 3)")
@@ -213,6 +217,10 @@ class Client:
 
     def buy_out(self):
             
+        if not self.cart:
+            print("Your cart is empty!")
+            return
+
         try:
             total_cost = 0.0
             for quantity, price in self.cart.values():
@@ -299,5 +307,7 @@ class Client:
             print(f"❌ Error loading order history: {e}")
 
 if __name__ == "__main__":
-    klient = Client()
+
+    client_id = int(input("Provide us with client id\n> "))
+    klient = Client(client_id)
     klient.main_loop()
