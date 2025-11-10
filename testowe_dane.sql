@@ -1,7 +1,7 @@
 -- ============================================
 -- KATEGORIA
 -- ============================================
-INSERT INTO Kategoria (id_kat, nazwa, opis) VALUES
+INSERT INTO Kategoria (nazwa, opis) VALUES
 ('Laptopy', 'Komputery przenośne do pracy i rozrywki'),
 ('Smartfony', 'Nowoczesne telefony komórkowe'),
 ('Akcesoria komputerowe', 'Myszy, klawiatury i inne urządzenia peryferyjne'),
@@ -13,7 +13,7 @@ INSERT INTO Kategoria (id_kat, nazwa, opis) VALUES
 -- ============================================
 -- PRODUCENT
 -- ============================================
-INSERT INTO Producent (id_firmy, nazwa, opis, id_kat) VALUES
+INSERT INTO Producent (nazwa, opis, id_kat) VALUES
 ('Dell', 'Producent komputerów i akcesoriów biurowych', 1),
 ('Samsung', 'Producent elektroniki użytkowej i AGD', 2),
 ('Logitech', 'Producent akcesoriów komputerowych i audio', 3),
@@ -25,7 +25,7 @@ INSERT INTO Producent (id_firmy, nazwa, opis, id_kat) VALUES
 -- ============================================
 -- PRODUKT
 -- ============================================
-INSERT INTO Produkt (id_prod, nazwa, opis, cena, stan_rzeczywisty, stan_wirtualny, id_kat, id_firmy, jednostka, ilosc) VALUES
+INSERT INTO Produkt (nazwa, opis, cena, stan_rzeczywisty, stan_wirtualny, id_kat, id_firmy, jednostka, ilosc) VALUES
 ('Dell Inspiron 15', 'Laptop 15.6" z procesorem Intel i5, 16GB RAM, SSD 512GB', 3299.00, 8, 8, 1, 1, 'szt.', 1),
 ('Dell XPS 13', 'Ultrabook premium z ekranem dotykowym', 5499.00, 5, 5, 1, 1, 'szt.', 1),
 ('Samsung Galaxy S24', 'Smartfon 6.2", 256GB, aparat 50MP', 3999.00, 12, 12, 2, 2, 'szt.', 1),

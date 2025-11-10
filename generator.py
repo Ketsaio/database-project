@@ -85,6 +85,4 @@ with ps.connect(f"dbname={DB_NAME} user={SQL_USER} password={SQL_PASSWORD} host=
         for k, v in cos.items():
             cur.execute(f"UPDATE zamowienia SET kwota = {float(v)} WHERE id_zam = {k}")
 
-    conn.close()
-
 
