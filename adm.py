@@ -176,13 +176,14 @@ def getOrderDetails():
 		print("invalid order ID")
 		return
 	
-	cur.execute("SELECT * FROM szczegolyzam WHERE id_zam = %s;", (orderId,))
+	cur.execute("SELECT p.nazwa, s.ilosc, s.cena FROM szczegolyzam s NATURAL JOIN produkt p WHERE id_zam = %s;", (orderId,))
+	rows = cur.fetchall()
 
-	if cur.rowcount == 0:
+	if not rows:
 		print("no details found for given order ID")
 		return
 		
-	for row in cur.fetchall():
+	for row in rows:
 		print(row)
 
 	cur.execute("SELECT * FROM zamowienia WHERE id_zam = %s;", (orderId,))
@@ -190,6 +191,8 @@ def getOrderDetails():
 
 	opt = input("[m]ark as realized / [c]ancel: ")
 	if opt == 'm' or opt == 'M':
+		for row in rows:
+			cur.execute("UPDATE produkt SET stan_rzeczywisty = stan_rzeczywisty - %s WHERE nazwa = %s", (row[1], row[0]))
 		cur.execute("UPDATE zamowienia SET status = 'zrealizowane' WHERE id_zam = %s;", (orderId,))
 		conn.commit()
 		print("order marked as realized")
