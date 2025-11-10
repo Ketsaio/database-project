@@ -27,15 +27,26 @@ class Account:
 	def signUp(self) -> None:
 		usr = input("username: ")
 		pwd = getpass.getpass("password: ")
+		confirmPwd = getpass.getpass("confirm password: ")
+
+		if pwd != confirmPwd:
+			print("passwords do not match")
+			return
+			
 		name = input("first name: ")
 		lastName = input("last name: ")
 		emailAddr = input("email address (optional): ")
 		phoneNum = input("phone number (optional): ")
 
+
 		pwdHash = bcrypt.hashpw(pwd.encode("utf-8"), bcrypt.gensalt())
 
-		cur.execute("INSERT INTO klient (imie, nazwisko, login, haslo, email, telefon) VALUES (%s, %s, %s, %s, %s, %s);", (name, lastName, usr, pwdHash, emailAddr, phoneNum))
-		conn.commit()
+		try:
+			cur.execute("INSERT INTO klient (imie, nazwisko, login, haslo, email, telefon) VALUES (%s, %s, %s, %s, %s, %s);", (name, lastName, usr, pwdHash, emailAddr, phoneNum))
+			conn.commit()
+		except Exception:
+			print("username already taken")
+			return
 
 		print("account created")
 
