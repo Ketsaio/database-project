@@ -125,7 +125,7 @@ class Client:
 
             elif wybor == 4:
                 print("Specify price:")
-                x, y = map(float, input("Give two numbers: 10 100\n>").split())
+                x, y = sorted(map(float, input("Give two numbers: 10 100\n>").split()))
 
                 if self.filters_check[4] is not None or self.filters_check[5] is not None:
                     self.add_to_query[self.filters_check[4]] = x
