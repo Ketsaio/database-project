@@ -176,7 +176,7 @@ def getOrderDetails():
 		print("invalid order ID")
 		return
 	
-	cur.execute("SELECT p.nazwa, s.ilosc, s.cena FROM szczegolyzam s NATURAL JOIN produkt p WHERE id_zam = %s;", (orderId,))
+	cur.execute("SELECT p.nazwa, s.ilosc, s.cena FROM szczegolyzam s JOIN produkt p ON s.id_prod = p.id_prod WHERE id_zam = %s;", (orderId,))
 	rows = cur.fetchall()
 
 	if not rows:
