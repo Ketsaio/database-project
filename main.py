@@ -1,6 +1,6 @@
 from signin import Account
 from adm import adminPanel
-from client import Client
+from client import client_start_up
 
 def main():
 	acc = Account()
@@ -20,8 +20,7 @@ def main():
 			if acc.getStatus() == "admin":
 				adminPanel()
 			else:
-				c = Client()
-				c.main_loop()
+				client_start_up(acc.account_id)
 
 		elif opt == 2:
 			acc.signUp()

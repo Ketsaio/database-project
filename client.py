@@ -6,7 +6,7 @@ from time import sleep
 
 load_dotenv()   # loads enviromental variables
 
-def start_up(client_id : int):
+def client_start_up(client_id : int):
     client = Client(client_id)
     client.main_loop()
     return
