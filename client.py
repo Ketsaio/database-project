@@ -99,7 +99,13 @@ class Client:
             elif wybor == 2:
                 print("Available categories:")
                 self.print_from_db("SELECT nazwa FROM kategoria;", False)
+                categories = self.cur.execute("SELECT nazwa FROM kategoria;")
+                holder = [c[0] for c in categories]
                 category = input("Choose category!\n> ")
+
+                if holder not in categories:
+                    print("Please, enter existing category!")
+                    return
 
                 if self.filters_check[2] is not None:
                     self.add_to_query[self.filters_check[2]] = category
@@ -112,7 +118,14 @@ class Client:
             elif wybor == 3:
                 print("Available producents:")
                 self.print_from_db("SELECT nazwa FROM producent;", False)
+                self.cur.execute("SELECT nazwa FROM producent;")
+                producents = self.cur.fetchall()
+                holder = [p[0] for p in producents]
                 producent = input("Choose producer!\n> ")
+
+                if producent not in holder:
+                    print("Please, enter existing producent!")
+                    return
 
                 if self.filters_check[3] is not None:
                     self.add_to_query[self.filters_check[3]] = producent
