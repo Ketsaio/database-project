@@ -205,6 +205,10 @@ class Client:
 
     def remove_from_cart(self):
         try:
+            if not self.cart:
+                print("Your cart is empty!")
+                return
+
             self.show_cart()
             item_id = int(input("Enter id to remove: "))
             if item_id in self.cart:
