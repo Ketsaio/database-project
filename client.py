@@ -120,6 +120,11 @@ class Client:
 
             if wybor == 1:
                 name = input("Enter name: ")
+
+                if self.filters_check[1] is not None:
+                    self.add_to_query[self.filters_check[1]] = f"%{name}%"
+                    return
+                
                 QUERY_HOLDER = " produkt.nazwa LIKE %s"
                 self.add_to_query.append(f"%{name}%")
                 self.filters_check[1] = len(self.add_to_query) - 1
@@ -134,15 +139,15 @@ class Client:
                 for cid, cname in categories:
                     print(f"  [{cid}] {cname}")
 
-                try:
-                    cat_id = int(input(Fore.CYAN + "➤ Choose category ID: " + Fore.WHITE))
-                except ValueError:
-                    print(Fore.RED + "❌ Invalid input.")
-                    return
+                cat_id = int(input(Fore.CYAN + "➤ Choose category ID: " + Fore.WHITE))
 
                 valid_ids = [c[0] for c in categories]
                 if cat_id not in valid_ids:
                     print(Fore.RED + "❌ No such category ID.")
+                    return
+                
+                if self.filters_check[2] is not None:
+                    self.add_to_query[self.filters_check[2]] = cat_id
                     return
 
                 QUERY_HOLDER = " kategoria.id_kat = %s"
@@ -159,15 +164,15 @@ class Client:
                 for pid, pname in producers:
                     print(f"  [{pid}] {pname}")
 
-                try:
-                    prod_id = int(input(Fore.CYAN + "➤ Choose producer ID: " + Fore.WHITE))
-                except ValueError:
-                    print(Fore.RED + "❌ Invalid input.")
-                    return
+                prod_id = int(input(Fore.CYAN + "➤ Choose producer ID: " + Fore.WHITE))
 
                 valid_ids = [p[0] for p in producers]
                 if prod_id not in valid_ids:
                     print(Fore.RED + "❌ No such producer ID.")
+                    return
+
+                if self.filters_check[3] is not None:
+                    self.add_to_query[self.filters_check[3]] = prod_id
                     return
 
                 QUERY_HOLDER = " producent.id_firmy = %s"
@@ -175,12 +180,14 @@ class Client:
                 self.filters_check[3] = len(self.add_to_query) - 1
 
             elif wybor == 4:
-                try:
-                    print("Enter two numbers (e.g. 10 100)")
-                    x, y = sorted(map(float, input("> ").split()))
-                except ValueError:
-                    print(Fore.RED + "❌ Invalid range.")
+                print("Enter two numbers (e.g. 10 100)")
+                x, y = sorted(map(float, input("> ").split()))
+                
+                if self.filters_check[4] is not None or self.filters_check[5] is not None:
+                    self.add_to_query[self.filters_check[4]] = x
+                    self.add_to_query[self.filters_check[5]] = y
                     return
+
                 QUERY_HOLDER = " produkt.cena BETWEEN %s AND %s"
                 self.add_to_query.extend([x, y])
                 self.filters_check[4] = len(self.add_to_query) - 2
