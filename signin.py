@@ -3,8 +3,10 @@ from dotenv import load_dotenv
 from os import getenv
 import getpass
 import bcrypt
+from colorama import Fore, Style, init
 
-load_dotenv()   # loads enviromental variables
+init(autoreset=True)
+load_dotenv()
 
 DB_NAME = getenv("DB_NAME")
 DB_HOST = getenv("DB_HOST")
@@ -25,46 +27,49 @@ class Account:
 		self.admStatus = False
 
 	def signUp(self) -> None:
-		usr = input("username: ")
-		pwd = getpass.getpass("password: ")
-		confirmPwd = getpass.getpass("confirm password: ")
+		print(Fore.CYAN + "\n╔═ Account Registration ═╗" + Style.RESET_ALL)
+		usr = input(Fore.WHITE + "👤 Username: ")
+		pwd = getpass.getpass("🔒 Password: ")
+		confirmPwd = getpass.getpass("🔁 Confirm password: ")
 
 		if pwd != confirmPwd:
-			print("passwords do not match")
+			print(Fore.RED + "❌ Passwords do not match.")
 			return
 			
-		name = input("first name: ")
-		lastName = input("last name: ")
-		emailAddr = input("email address (optional): ")
-		phoneNum = input("phone number (optional): ")
-
+		name = input("🧍 First name: ")
+		lastName = input("🧍 Last name: ")
+		emailAddr = input("📧 Email address (optional): ")
+		phoneNum = input("📞 Phone number (optional): ")
 
 		pwdHash = bcrypt.hashpw(pwd.encode("utf-8"), bcrypt.gensalt())
 
 		try:
-			cur.execute("INSERT INTO klient (imie, nazwisko, login, haslo, email, telefon) VALUES (%s, %s, %s, %s, %s, %s);", (name, lastName, usr, pwdHash, emailAddr, phoneNum))
+			cur.execute(
+				"INSERT INTO klient (imie, nazwisko, login, haslo, email, telefon) VALUES (%s, %s, %s, %s, %s, %s);",
+				(name, lastName, usr, pwdHash, emailAddr, phoneNum),
+			)
 			conn.commit()
 		except Exception:
-			print("username already taken")
+			print(Fore.RED + "❌ Username already taken.")
 			return
 
-		print("account created")
-
+		print(Fore.GREEN + "✅ Account successfully created!")
 
 	def signIn(self) -> bool:
-		usr = input("username: ")
-		pwd = getpass.getpass("password: ")
+		print(Fore.CYAN + "\n╔═ Sign In ═╗" + Style.RESET_ALL)
+		usr = input(Fore.WHITE + "👤 Username: ")
+		pwd = getpass.getpass("🔒 Password: ")
 
 		cur.execute("SELECT id_klienta, login, haslo, is_admin, imie FROM klient WHERE login = %s;", (usr,))
 		row = cur.fetchone()
 
 		if not row:
-			print("account not found")
+			print(Fore.RED + "❌ Account not found.")
 			return False
 
 		id_klienta, username, pwdHash, is_admin, name = row
 		if not bcrypt.checkpw(pwd.encode("utf-8"), pwdHash):
-			print("wrong password")
+			print(Fore.RED + "❌ Wrong password.")
 			return False
 		
 		self.account_id = id_klienta
@@ -75,7 +80,4 @@ class Account:
 		return True
 		
 	def getStatus(self) -> str:
-		if self.admStatus:
-			return "admin"
-		else:
-			return "usr"
+		return "admin" if self.admStatus else "usr"
