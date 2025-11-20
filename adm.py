@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from os import getenv
 from typing import Optional, cast, LiteralString
 from colorama import Fore, Style, init
+from datetime import datetime, date
 
 init(autoreset=True)
 load_dotenv()
@@ -150,6 +151,9 @@ def modifyProduct():
 
 	updateQuery = updateQuery.rstrip(", ") + " WHERE id_prod = %s;"
 	updateValues.append(rows[0][0])
+	if len(updateValues) == 1:
+		print(Fore.RED + "No changes specified.")
+		return
 	cur.execute(cast(LiteralString, updateQuery), updateValues)
 	conn.commit()
 	print(Fore.GREEN + "✅ Product updated!")
@@ -160,14 +164,16 @@ def getAllOrders():
 	if not limit.isdigit():
 		limit = 20
 	cur.execute("SELECT * FROM zamowienia ORDER BY id_zam DESC LIMIT %s;", (int(limit),))
+	print("  ID  |  ID_KLIENTA  |    DATA    |    STATUS    |  KWOTA  ")
 	for row in cur.fetchall():
-		print(row)
+		print(f"{row[0]:^6}|{row[1]:^14}|{row[2].strftime("%Y-%m-%d"):^12}|{row[3]:^14}|{row[4]:^9}")
 
 def getUnrealizedOrders():
 	separator("Pending Orders")
 	cur.execute("SELECT * FROM zamowienia WHERE status LIKE 'OCZEKUJĄCE' ORDER BY id_zam;")
+	print("  ID  |  ID_KLIENTA  |    DATA    |  KWOTA  ")
 	for row in cur.fetchall():
-		print(row)
+		print(f"{row[0]:^6}|{row[1]:^14}|{row[2].strftime("%Y-%m-%d"):^12}|{row[4]:^9}")
 
 def getOrderDetails():
 	separator("Order Details")
@@ -187,7 +193,7 @@ def getOrderDetails():
 		print(f"{row[0]} x{row[1]} — {row[2]} zł")
 	cur.execute("SELECT * FROM zamowienia WHERE id_zam = %s;", (orderId,))
 	print(Fore.CYAN + f"Summary: {cur.fetchone()}")
-	opt = input("[M]ark as realized / [C]ancel: ")
+	opt = input("[M]ark as realized / [C]ancel order / [E]xit: ")
 	if opt.lower() == "m":
 		for row in rows:
 			cur.execute("UPDATE produkt SET stan_rzeczywisty = stan_rzeczywisty - %s WHERE nazwa = %s", (row[1], row[0]))
@@ -199,6 +205,8 @@ def getOrderDetails():
 		cur.execute("DELETE FROM zamowienia WHERE id_zam = %s;", (orderId,))
 		conn.commit()
 		print(Fore.RED + "🗑️ Order canceled.")
+	else:
+		pass
 
 def checkAvailability():
 	separator("Check Stock")
@@ -211,9 +219,77 @@ def checkAvailability():
 		row = cur.fetchone()
 		print(row if row else Fore.YELLOW + "⚠️ No product found.")
 	else:
-		cur.execute("SELECT nazwa, stan_rzeczywisty, stan_wirtualny FROM produkt;")
+		cur.execute("SELECT id_prod, nazwa, stan_rzeczywisty, stan_wirtualny FROM produkt;")
+		print("  ID  |          NAZWA          |STAN RZECZYWISTY|STAN WIRTUALNY")
 		for row in cur.fetchall():
-			print(row)
+			print(f"{row[0]:^6}|{row[1]:^25}|{row[2]:^16}|{row[3]:^14}")
+
+def lookupUsr():
+	separator("User data")
+	userId = input("Enter account ID: ")
+	if not userId.isdigit():
+		print(Fore.RED + "❌ Invalid ID.")
+		return
+	cur.execute(
+		"SELECT * FROM klient WHERE id_klienta = %s;",
+		(userId,),
+	)
+	row = cur.fetchone()
+	print(f"{row[0]}, {row[1]} {row[2]}, {row[6]}, {row[7]}")
+
+def grantAdminPrivileges():
+	separator("Grant admin privileges")
+	userId = input("Enter account ID: ")
+	if not userId.isdigit():
+		print(Fore.RED + "❌ Invalid ID.")
+		return
+	conf = input("Type in \"yes\" to confirm. ➤ ")
+	if conf == "yes":
+		cur.execute(
+			"UPDATE klient SET is_admin = true WHERE id_klienta = %s;",
+			(userId,),
+		)
+		conn.commit()
+		print(Fore.GREEN + "Privileges granted.")
+	else:
+		print(Fore.RED + "Canceling...")
+
+def deleteUsrAccount():
+	separator("User account deletion")
+	userId = input("Enter account ID: ")
+	if not userId.isdigit():
+		print(Fore.RED + "❌ Invalid ID.")
+		return
+	conf = input("Type in \"yes\" to confirm. ➤ ")
+	if conf == "yes":
+		cur.execute(
+			"DELETE FROM klient WHERE id_klienta = %s;",
+			(userId,),
+		)
+		conn.commit()
+		print(Fore.GREEN + "Account deleted.")
+	else:
+		print(Fore.RED + "Canceling...")
+
+def userMgmtMenu():
+	separator("User Management Menu")
+	print(Fore.WHITE + "[1] Lookup user\n[2] Grant admin status\n[3] Delete account\n[0] Back")
+	try:
+		opt = int(input("➤ Choose: "))
+	except ValueError:
+		print(Fore.RED + "❌ Invalid input.")
+		return
+	if opt == 1:
+		lookupUsr()
+	elif opt == 2:
+		grantAdminPrivileges()
+	elif opt == 3:
+		deleteUsrAccount()
+	elif opt == 0:
+		return
+	else:
+		print(Fore.RED + "❌ Invalid option.")
+
 
 def addingMenu():
 	separator("Add Menu")
@@ -260,7 +336,7 @@ def adminPanel():
 	while True:
 		print(
 			Fore.YELLOW
-			+ "\n[1] Add new\n[2] Modify product\n[3] Check availability\n[4] Orders\n[0] Exit"
+			+ "\n[1] Add new\n[2] Modify product\n[3] Check availability\n[4] Orders\n[5] Account management\n[0] Exit"
 		)
 		try:
 			opt = int(input(Fore.CYAN + "➤ Choose: " + Fore.WHITE))
@@ -275,6 +351,8 @@ def adminPanel():
 			checkAvailability()
 		elif opt == 4:
 			ordersMenu()
+		elif opt == 5:
+			userMgmtMenu()
 		elif opt == 0:
 			print(Fore.MAGENTA + "👋 Exiting admin panel...")
 			break

@@ -79,5 +79,5 @@ class Account:
 
 		return True
 		
-	def getStatus(self) -> str:
-		return "admin" if self.admStatus else "usr"
+	def getAdminStatus(self) -> bool:
+		return self.admStatus
