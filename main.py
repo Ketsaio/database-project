@@ -37,7 +37,7 @@ def main():
 				continue
 			print(Fore.GREEN + f"✅ Welcome, {acc.firstName}!")
 
-			if acc.getStatus() == "admin":
+			if acc.getAdminStatus():
 				adminPanel()
 			else:
 				client_start_up(acc.account_id)
